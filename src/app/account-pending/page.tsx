@@ -5,6 +5,7 @@ import { logout } from "@/app/actions/auth";
 import { getCurrentSession } from "@/server/auth/session";
 import { rawPrisma } from "@/server/db/client";
 import { submitPaymentReference } from "@/app/actions/admin";
+import { buildWhatsAppUrl, getWhatsAppBusinessNumber } from "@/lib/whatsapp";
 
 const PLAN_NAMES: Record<string, string> = {
   starter: "Starter",
@@ -36,10 +37,12 @@ export default async function AccountPendingPage() {
     year: "numeric",
   }).format(new Date(organization.createdAt));
   const registrationReference = organization.id.slice(-8).toUpperCase();
-  const whatsappMessage = encodeURIComponent(
-    `Hello DukaOS, I have registered ${organization.name} (${user.email}) for the ${planName} package.${paymentReference ? ` My payment reference is ${paymentReference}.` : " Please send payment instructions."} Please confirm my payment so the account can be activated.`,
-  );
-  const whatsappUrl = `https://wa.me/254757308631?text=${whatsappMessage}`;
+  const whatsappMessage =
+    `Hello DukaOS, I have registered ${organization.name} (${user.email}) for the ${planName} package.${paymentReference ? ` My payment reference is ${paymentReference}.` : " Please send payment instructions."} Please confirm my payment so the account can be activated.`;
+  const whatsappNumber = getWhatsAppBusinessNumber();
+  const whatsappUrl = whatsappNumber
+    ? buildWhatsAppUrl(whatsappNumber, whatsappMessage)
+    : null;
 
   return (
     <main className="min-h-screen bg-background px-5 py-6 text-foreground sm:px-8 sm:py-8">
@@ -95,8 +98,8 @@ export default async function AccountPendingPage() {
               <MessageCircle size={22} />
               <h2 className="mt-5 text-xl font-semibold">{isPaused ? "Need help with your workspace?" : "Ready to activate your workspace?"}</h2>
               <p className="mt-3 text-sm leading-6 text-white/80">{isPaused ? "Contact our team on WhatsApp and we will help you resolve the workspace status." : "Send your business name, selected plan, and payment reference to our team. We will verify the payment and activate your DukaOS dashboard."}</p>
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-primary-tint">{isPaused ? "Contact DukaOS support" : "Confirm payment on WhatsApp"} <ArrowRight size={17} /></a>
-              <p className="mt-5 text-xs text-white/75">DukaOS Support<br /><span className="font-semibold text-white">+254 757 308 631</span></p>
+              {whatsappUrl ? <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-primary-tint">{isPaused ? "Contact DukaOS support" : "Confirm payment on WhatsApp"} <ArrowRight size={17} /></a> : <p className="mt-6 text-sm text-white/80">WhatsApp is unavailable. <a href="mailto:leonochieng436@gmail.com" className="font-semibold underline">Email DukaOS support</a>.</p>}
+              <p className="mt-5 text-xs text-white/75">DukaOS Support{whatsappNumber && <><br /><span className="font-semibold text-white">+{whatsappNumber}</span></>}</p>
             </section>
 
             <form action={logout} className="order-6 mt-5 lg:col-start-2 lg:row-start-4"><button type="submit" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"><LogOut size={16} /> Log out</button></form>

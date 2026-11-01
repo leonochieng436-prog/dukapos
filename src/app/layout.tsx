@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({
@@ -94,9 +93,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${playfairDisplay.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <Script id="dukaos-theme-bootstrap" strategy="beforeInteractive">
-          {`(() => { try { if (localStorage.getItem("dukaos-theme") === "dark") document.documentElement.classList.add("dark"); } catch {} })()`}
-        </Script>
+        <script
+          id="dukaos-theme-bootstrap"
+          dangerouslySetInnerHTML={{
+            __html:
+              'try { if (localStorage.getItem("dukaos-theme") === "dark") document.documentElement.classList.add("dark"); } catch {}',
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

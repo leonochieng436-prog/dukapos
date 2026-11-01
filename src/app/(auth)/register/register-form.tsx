@@ -156,7 +156,7 @@ export function RegisterForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <div className="relative"><LockKeyhole size={17} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" /><Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="At least 8 characters" required className="h-11 pl-10 pr-11" /><button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded text-muted-foreground hover:bg-surface-muted hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>
+        <div className="relative"><LockKeyhole size={17} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" /><Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="At least 15 characters" minLength={15} maxLength={1024} autoComplete="new-password" required className="h-11 pl-10 pr-11" /><button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded text-muted-foreground hover:bg-surface-muted hover:text-foreground" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>
         {fieldErrors.password && (
           <p className="text-[12px] text-danger">{fieldErrors.password[0]}</p>
         )}

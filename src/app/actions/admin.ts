@@ -8,6 +8,11 @@ import { verifyPassword } from "@/server/auth/password";
 import { createAdminSession, destroyAdminSession, requireAdmin } from "@/server/auth/admin-session";
 import { getCurrentSession } from "@/server/auth/session";
 import { PLAN_CATALOG, type Plan } from "@/lib/billing";
+import {
+  consumeAuthRateLimit,
+  recordSecurityEvent,
+} from "@/server/auth/security";
+import { z } from "zod";
 
 export async function submitPaymentReference(formData: FormData): Promise<void> {
   const session = await getCurrentSession();
@@ -22,19 +27,62 @@ export async function submitPaymentReference(formData: FormData): Promise<void> 
   revalidatePath("/admin");
 }
 
-export async function adminLogin(raw: { email: string; password: string }) {
-  const admin = await rawPrisma.platformAdmin.findUnique({ where: { email: raw.email.toLowerCase().trim() } });
-  if (!admin || !admin.isActive || !(await verifyPassword(raw.password, admin.passwordHash))) {
+export async function adminLogin(raw: unknown) {
+  const parsed = z.object({
+    email: z.string().trim().email().max(254),
+    password: z.string().min(1).max(1024),
+  }).safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Invalid admin email or password." };
+  const email = parsed.data.email.toLowerCase();
+  const requestHeaders = await headers();
+  const ipAddress = requestHeaders.get("x-real-ip")?.trim() ??
+    requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    null;
+  const ipAllowed = await consumeAuthRateLimit({
+    scope: "platform-admin-login-ip",
+    ipAddress,
+    subject: email,
+    limit: 8,
+    windowMs: 15 * 60 * 1000,
+  });
+  const emailAllowed = await consumeAuthRateLimit({
+    scope: "platform-admin-login-email",
+    subject: email,
+    limit: 8,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!ipAllowed || !emailAllowed) return { ok: false, error: "Invalid admin email or password." };
+
+  const admin = await rawPrisma.platformAdmin.findUnique({ where: { email } });
+  const dummyHash = "$2b$12$AcmK/uvCLRGrWL2Yi.Zk9elAcl1xRvwN6Mmz2z4Gx8E3IglDvkzPa";
+  const passwordMatches = await verifyPassword(parsed.data.password, admin?.passwordHash ?? dummyHash);
+  if (!admin || !admin.isActive || admin.mustResetPassword || !passwordMatches) {
+    await recordSecurityEvent({
+      action: "PLATFORM_ADMIN_LOGIN_FAILED",
+      targetAdminId: admin?.id ?? null,
+      ipAddress,
+    });
     return { ok: false, error: "Invalid admin email or password." };
   }
-  const requestHeaders = await headers();
+
+  await rawPrisma.platformAdmin.update({
+    where: { id: admin.id },
+    data: { lastLoginAt: new Date() },
+  });
+  await recordSecurityEvent({
+    action: "PLATFORM_ADMIN_LOGIN_SUCCEEDED",
+    actorAdminId: admin.id,
+    targetAdminId: admin.id,
+    ipAddress,
+  });
+  await destroyAdminSession();
   await createAdminSession(admin.id, requestHeaders.get("x-forwarded-for"), requestHeaders.get("user-agent"));
   return { ok: true, data: { redirectTo: "/admin" } };
 }
 
 export async function adminLogout() {
   await destroyAdminSession();
-  redirect("/login");
+  redirect("/admin/login");
 }
 
 export async function approveSubscription(formData: FormData): Promise<void> {

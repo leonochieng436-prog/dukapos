@@ -9,6 +9,7 @@ import { recordAudit } from "@/server/services/audit";
 import { assertUserLimitNotExceeded } from "@/server/services/billing";
 import { inviteUserSchema } from "@/lib/validation/auth";
 import type { ActionResult } from "./auth";
+import { requestPasswordReset } from "./auth";
 
 /**
  * Invites a teammate into the current organization. There is no email
@@ -159,22 +160,30 @@ export async function updateUser(userId: string, raw: unknown): Promise<ActionRe
   }
 }
 
-export async function resetUserPassword(userId: string): Promise<ActionResult<{ temporaryPassword: string }>> {
+export async function sendUserPasswordResetLink(userId: string): Promise<ActionResult<undefined>> {
   try {
     const ctx = await requireAuthContext();
     assertPermission(ctx, "USERS_MANAGE");
     assertOwner(ctx);
-    if (!userId || userId === ctx.userId) return { ok: false, error: "Use your own account password settings to change this password." };
+    if (!userId || userId === ctx.userId) return { ok: false, error: "Use the forgot-password flow to reset your own password." };
     const membership = await rawPrisma.userOrganization.findUnique({ where: { userId_organizationId: { userId, organizationId: ctx.organizationId } } });
     if (!membership || membership.isOwner) return { ok: false, error: "That team member cannot be reset." };
-    const temporaryPassword = randomBytes(6).toString("base64url");
-    await rawPrisma.$transaction([
-      rawPrisma.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(temporaryPassword) } }),
-      rawPrisma.session.deleteMany({ where: { userId, organizationId: ctx.organizationId } }),
-    ]);
-    await recordAudit({ organizationId: ctx.organizationId, userId: ctx.userId, action: "USER_PASSWORD_RESET", entityType: "User", entityId: userId });
+    const user = await rawPrisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user) return { ok: false, error: "Team member not found." };
+    const requestStartedAt = new Date();
+    const result = await requestPasswordReset({ email: user.email });
+    if (!result.ok) return { ok: false, error: result.error };
+    const resetRequest = await rawPrisma.passwordResetToken.findFirst({
+      where: { userId, createdAt: { gte: requestStartedAt } },
+      orderBy: { createdAt: "desc" },
+      select: { deliveryStatus: true },
+    });
+    if (resetRequest?.deliveryStatus === "FAILED") {
+      return { ok: false, error: "The reset email could not be delivered. The user can retry from the forgot-password page." };
+    }
+    await recordAudit({ organizationId: ctx.organizationId, userId: ctx.userId, action: "USER_PASSWORD_RESET_LINK_REQUESTED", entityType: "User", entityId: userId });
     revalidatePath("/dashboard/settings/users");
-    return { ok: true, data: { temporaryPassword } };
+    return { ok: true, data: undefined };
   } catch (e) {
     if (e instanceof AuthError) return { ok: false, error: e.message };
     throw e;

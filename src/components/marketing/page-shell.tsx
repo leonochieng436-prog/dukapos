@@ -50,7 +50,6 @@ export function BrandMark({ footer = false }: { footer?: boolean }) {
 
 export function MarketingPageHeader({
   active,
-  onOpenLegal,
 }: {
   active?: "about" | "contact";
   onOpenLegal?: (tab: LegalTab) => void;
@@ -329,13 +328,4 @@ export function RevealOnScroll() {
   }, []);
 
   return null;
-}
-
-export function JsonLdScript({ data }: { data: Record<string, unknown> }) {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
-  );
 }

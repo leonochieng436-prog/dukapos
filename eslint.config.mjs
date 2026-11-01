@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "duka-organization/**",
     "next-env.d.ts",
   ]),
 ]);

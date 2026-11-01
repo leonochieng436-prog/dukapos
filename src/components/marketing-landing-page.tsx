@@ -399,10 +399,10 @@ function PricingSection() {
               ))}
             </div>
             <Link
-              href="/register"
+              href={plan.name === "Enterprise" ? "/contact#form" : "/register"}
               className={`mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-sm font-semibold ${plan.popular ? "bg-primary text-white hover:bg-primary-hover" : "border border-border-strong hover:border-primary hover:text-primary"}`}
             >
-              {plan.name === "Starter" ? "Get started" : plan.name === "Growth" ? "Start growing" : "Talk to sales"}
+              {plan.name === "Starter" ? "Get started" : plan.name === "Growth" ? "Start growing" : "Contact sales"}
               <ArrowRight size={15} />
             </Link>
           </article>
@@ -507,42 +507,12 @@ function PricingSection() {
         </div>
         <div className="mt-6 flex flex-col justify-between gap-4 border-t border-white/15 pt-5 sm:flex-row sm:items-center">
           <p className="text-sm text-emerald-50/75">Software subscription required from <strong className="text-white">KES 1,200/month</strong>.</p>
-          <Link href="/register" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#8de0c1] px-5 py-3 text-sm font-semibold text-[#103f38] hover:bg-white">Get complete setup <ArrowRight size={15} /></Link>
+          <Link href="/contact#form" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#8de0c1] px-5 py-3 text-sm font-semibold text-[#103f38] hover:bg-white">Get complete setup <ArrowRight size={15} /></Link>
         </div>
       </div>
     </section>
   );
 }
-
-const schemaMarkup = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "DukaOS",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  offers: {
-    "@type": "Offer",
-    price: "1200",
-    priceCurrency: "KES",
-    category: "POS and business management software",
-  },
-  description:
-    "DukaOS is a POS, inventory, customer credit, purchase, and reporting platform for Kenyan businesses.",
-  featureList: [
-    "Point of sale",
-    "Inventory control",
-    "Supplier and purchase management",
-    "Customer credit tracking",
-    "Branch and warehouse management",
-    "Business reporting",
-  ],
-  publisher: {
-    "@type": "Organization",
-    name: "DukaOS",
-    sameAs: "https://dukaos-organization.vercel.app",
-  },
-  areaServed: "Kenya",
-};
 
 export function MarketingLandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -595,10 +565,6 @@ export function MarketingLandingPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaMarkup) }}
-      />
       <main className="overflow-hidden bg-[#f8faf9] text-foreground">
       <RevealOnScroll />
       <ScrollToTopButton />

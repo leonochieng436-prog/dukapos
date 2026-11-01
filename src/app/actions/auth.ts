@@ -14,7 +14,14 @@ import {
   provisionDefaultSettings,
 } from "@/server/services/organization";
 import { uniqueOrgSlug } from "@/lib/slug";
-import { randomBytes, createHash } from "crypto";
+import { randomBytes } from "crypto";
+import {
+  consumeAuthRateLimit,
+  hashSecurityToken,
+  recordSecurityEvent,
+  securityEmailBaseUrl,
+  sendSecurityEmail,
+} from "@/server/auth/security";
 import { getTrialEndDate, planLimits, type Plan } from "@/lib/billing";
 import {
   registerOrganizationSchema,
@@ -167,15 +174,15 @@ export async function registerOrganization(
       recipient: result.user.email,
       subject: `Welcome to DukaOS, ${result.org.name}`,
       message: trial
-        ? `Welcome to DukaOS, ${result.user.name}. Your ${result.org.name} workspace is ready with a 7-day free trial.\n\nLogin email: ${result.user.email}\nPassword: ${input.password}\nPackage: ${planName}\n\nSign in at ${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/login to get started.`
-        : `Welcome to DukaOS, ${result.user.name}. Your ${result.org.name} workspace is ready and awaiting payment confirmation.\n\nLogin email: ${result.user.email}\nPassword: ${input.password}\nPackage: ${planName}\n\nPayment instructions will be shared before your workspace is activated.`,
+        ? `Welcome to DukaOS, ${result.user.name}. Your ${result.org.name} workspace is ready with a 7-day free trial.\n\nLogin email: ${result.user.email}\nPackage: ${planName}\n\nSign in at ${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/login to get started. Your password is the one you chose during registration.`
+        : `Welcome to DukaOS, ${result.user.name}. Your ${result.org.name} workspace is ready and awaiting payment confirmation.\n\nLogin email: ${result.user.email}\nPackage: ${planName}\n\nPayment instructions will be shared before your workspace is activated. Your password is the one you chose during registration.`,
       html: brandedEmail({
         preheader: `Your ${result.org.name} workspace is ready.`,
         eyebrow: "Welcome to DukaOS",
         title: "Your business workspace is ready",
         body: trial
-          ? `<p>Hi ${escapeHtml(result.user.name)},</p><p>Your <strong>${escapeHtml(result.org.name)}</strong> workspace has been created successfully. You have a 7-day free trial and can start using your dashboard immediately.</p><div style="margin:24px 0;padding:18px 20px;background:#f3faf7;border:1px solid #d9eae4;border-radius:8px"><p style="margin:0 0 10px;color:#102b4e;font-weight:bold">Your login credentials</p><p style="margin:0;line-height:1.8">Email: <strong>${escapeHtml(result.user.email)}</strong><br>Password: <strong>${escapeHtml(input.password)}</strong><br>Package: <strong>${escapeHtml(planName)}</strong></p></div><p>Keep these credentials private. Choose a paid plan before your trial ends to continue without interruption.</p>`
-          : `<p>Hi ${escapeHtml(result.user.name)},</p><p>Your <strong>${escapeHtml(result.org.name)}</strong> workspace has been created and is awaiting payment confirmation.</p><div style="margin:24px 0;padding:18px 20px;background:#f3faf7;border:1px solid #d9eae4;border-radius:8px"><p style="margin:0 0 10px;color:#102b4e;font-weight:bold">Your registration</p><p style="margin:0;line-height:1.8">Email: <strong>${escapeHtml(result.user.email)}</strong><br>Package: <strong>${escapeHtml(planName)}</strong></p></div><p>Payment instructions will be shared before your workspace is activated.</p>`,
+          ? `<p>Hi ${escapeHtml(result.user.name)},</p><p>Your <strong>${escapeHtml(result.org.name)}</strong> workspace has been created successfully. You have a 7-day free trial and can start using your dashboard immediately.</p><div style="margin:24px 0;padding:18px 20px;background:#f3faf7;border:1px solid #d9eae4;border-radius:8px"><p style="margin:0 0 10px;color:#102b4e;font-weight:bold">Your account</p><p style="margin:0;line-height:1.8">Email: <strong>${escapeHtml(result.user.email)}</strong><br>Package: <strong>${escapeHtml(planName)}</strong></p></div><p>Use the password you chose during registration. We never send passwords by email. Choose a paid plan before your trial ends to continue without interruption.</p>`
+          : `<p>Hi ${escapeHtml(result.user.name)},</p><p>Your <strong>${escapeHtml(result.org.name)}</strong> workspace has been created and is awaiting payment confirmation.</p><div style="margin:24px 0;padding:18px 20px;background:#f3faf7;border:1px solid #d9eae4;border-radius:8px"><p style="margin:0 0 10px;color:#102b4e;font-weight:bold">Your account</p><p style="margin:0;line-height:1.8">Email: <strong>${escapeHtml(result.user.email)}</strong><br>Package: <strong>${escapeHtml(planName)}</strong></p></div><p>Use the password you chose during registration. We never send passwords by email. Payment instructions will be shared before your workspace is activated.</p>`,
         cta: { label: "Open DukaOS", url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/login` },
       }),
     });
@@ -203,6 +210,23 @@ export async function login(
     };
   }
   const { email, password } = parsed.data;
+  const ipAddress = await clientIp();
+  const ipAllowed = await consumeAuthRateLimit({
+    scope: "business-login-ip",
+    ipAddress,
+    subject: email,
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+  });
+  const emailAllowed = await consumeAuthRateLimit({
+    scope: "business-login-email",
+    ipAddress: email.toLowerCase(),
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!ipAllowed || !emailAllowed) {
+    return { ok: false, error: "Invalid email or password." };
+  }
 
   const user = await rawPrisma.user.findUnique({
     where: { email: email.toLowerCase() },
@@ -227,6 +251,11 @@ export async function login(
   );
 
   if (!user || !passwordOk || !user.isActive) {
+    await recordSecurityEvent({
+      action: "USER_LOGIN_FAILED",
+      targetUserId: user?.id ?? null,
+      ipAddress,
+    });
     return { ok: false, error: "Invalid email or password." };
   }
 
@@ -260,6 +289,12 @@ export async function login(
     entityId: user.id,
     ipAddress: await clientIp(),
   });
+  await recordSecurityEvent({
+    action: "USER_LOGIN_SUCCEEDED",
+    actorAdminId: null,
+    targetUserId: user.id,
+    ipAddress,
+  });
 
   return {
     ok: true,
@@ -271,11 +306,7 @@ export async function login(
   };
 }
 
-const RESET_TOKEN_TTL_MS = 1000 * 60 * 30; // 30 minutes
-
-function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
+const RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
 
 /**
  * Issues a password reset token. Returns `ok: true` unconditionally
@@ -292,24 +323,50 @@ export async function requestPasswordReset(
     return { ok: false, error: "Enter a valid email address." };
   }
 
+  const email = parsed.data.email.toLowerCase();
+  const ipAddress = await clientIp();
+  const ipAllowed = await consumeAuthRateLimit({
+    scope: "business-password-reset-ip",
+    ipAddress,
+    limit: 8,
+    windowMs: 15 * 60 * 1000,
+  });
+  const emailAllowed = await consumeAuthRateLimit({
+    scope: "business-password-reset-email",
+    subject: email,
+    limit: 3,
+    windowMs: 30 * 60 * 1000,
+  });
+  if (!ipAllowed || !emailAllowed) return { ok: true, data: undefined };
+
   const user = await rawPrisma.user.findUnique({
-    where: { email: parsed.data.email.toLowerCase() },
+    where: { email },
   });
 
-  if (user) {
+  if (user?.isActive) {
     const token = randomBytes(32).toString("hex");
-    await rawPrisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        tokenHash: hashToken(token),
-        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
-      },
+    const resetToken = await rawPrisma.$transaction(async (tx) => {
+      await tx.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      return tx.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashSecurityToken(token),
+          expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      });
+    });
+    await recordSecurityEvent({
+      action: "USER_PASSWORD_RESET_REQUESTED",
+      targetUserId: user.id,
+      ipAddress,
     });
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/reset-password?token=${token}`;
     try {
-      await sendMessage({
-        channel: "email",
+      const resetUrl = `${securityEmailBaseUrl()}/reset-password?token=${token}`;
+      await sendSecurityEmail({
         recipient: user.email,
         subject: "Reset your DukaOS password",
         message: `Reset your password using this link: ${resetUrl}\n\nThis link expires in 30 minutes.`,
@@ -321,8 +378,24 @@ export async function requestPasswordReset(
           cta: { label: "Reset password", url: resetUrl },
         }),
       });
+      await rawPrisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { deliveryStatus: "SENT" },
+      });
     } catch (error) {
-      console.error("[password-reset] email delivery failed", error);
+      await rawPrisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { deliveryStatus: "FAILED" },
+      });
+      await recordSecurityEvent({
+        action: "USER_PASSWORD_RESET_EMAIL_FAILED",
+        targetUserId: user.id,
+        ipAddress,
+      });
+      console.error("[password-reset] email delivery failed", {
+        userId: user.id,
+        reason: error instanceof Error ? error.message : "unknown",
+      });
     }
   }
 
@@ -341,15 +414,39 @@ export async function resetPassword(
     };
   }
 
-  const tokenHash = hashToken(parsed.data.token);
+  const tokenHash = hashSecurityToken(parsed.data.token);
+  const ipAddress = await clientIp();
+  const ipAllowed = await consumeAuthRateLimit({
+    scope: "business-password-reset-submit-ip",
+    ipAddress,
+    limit: 12,
+    windowMs: 15 * 60 * 1000,
+  });
+  const tokenAllowed = await consumeAuthRateLimit({
+    scope: "business-password-reset-submit-token",
+    ipAddress,
+    subject: tokenHash,
+    limit: 5,
+    windowMs: 30 * 60 * 1000,
+  });
+  if (!ipAllowed || !tokenAllowed) {
+    return {
+      ok: false,
+      error: "This reset link is invalid or has expired. Request a new one.",
+    };
+  }
+
   const resetToken = await rawPrisma.passwordResetToken.findUnique({
     where: { tokenHash },
+    select: { id: true, userId: true, expiresAt: true, usedAt: true, revokedAt: true, deliveryStatus: true },
   });
-
+  const now = new Date();
   if (
     !resetToken ||
     resetToken.usedAt ||
-    resetToken.expiresAt < new Date()
+    resetToken.revokedAt ||
+    resetToken.deliveryStatus !== "SENT" ||
+    resetToken.expiresAt <= now
   ) {
     return {
       ok: false,
@@ -358,19 +455,40 @@ export async function resetPassword(
   }
 
   const passwordHash = await hashPassword(parsed.data.password);
+  const reset = await rawPrisma.$transaction(async (tx) => {
+    const claimed = await tx.passwordResetToken.updateMany({
+      where: {
+        id: resetToken.id,
+        usedAt: null,
+        revokedAt: null,
+        deliveryStatus: "SENT",
+        expiresAt: { gt: now },
+      },
+      data: { usedAt: now },
+    });
+    if (claimed.count !== 1) return false;
 
-  await rawPrisma.$transaction([
-    rawPrisma.user.update({
+    await tx.user.update({
       where: { id: resetToken.userId },
       data: { passwordHash },
-    }),
-    rawPrisma.passwordResetToken.update({
-      where: { id: resetToken.id },
-      data: { usedAt: new Date() },
-    }),
-    // Reset invalidates all existing sessions, per standard practice.
-    rawPrisma.session.deleteMany({ where: { userId: resetToken.userId } }),
-  ]);
+    });
+    await tx.passwordResetToken.updateMany({
+      where: { userId: resetToken.userId, usedAt: null, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    await tx.session.deleteMany({ where: { userId: resetToken.userId } });
+    await tx.securityEvent.create({
+      data: { action: "USER_PASSWORD_RESET", targetUserId: resetToken.userId },
+    });
+    return true;
+  });
+
+  if (!reset) {
+    return {
+      ok: false,
+      error: "This reset link is invalid or has expired. Request a new one.",
+    };
+  }
 
   return { ok: true, data: { redirectTo: "/login" } };
 }

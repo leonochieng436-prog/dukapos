@@ -18,15 +18,19 @@ export default function ResetPasswordForm() {
   function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      const result = await resetPassword({
-        token,
-        password: String(formData.get("password") || ""),
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await resetPassword({
+          token,
+          password: String(formData.get("password") || ""),
+        });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        window.location.assign(result.data.redirectTo);
+      } catch {
+        setError("We could not update your password. Please try again or request a new link.");
       }
-      window.location.assign(result.data.redirectTo);
     });
   }
 
@@ -46,6 +50,7 @@ export default function ResetPasswordForm() {
     <form action={handleSubmit} className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold">Set a new password</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Use at least 15 characters. Long passphrases are supported.</p>
       </div>
       {error && (
         <div className="rounded-[var(--radius-sm)] bg-danger-tint px-3 py-2 text-[13px] text-danger">
@@ -60,7 +65,8 @@ export default function ResetPasswordForm() {
             name="password"
             type={showPassword ? "text" : "password"}
             required
-            minLength={8}
+            minLength={15}
+            maxLength={1024}
             className="pr-11"
           />
           <button

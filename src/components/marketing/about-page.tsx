@@ -14,7 +14,7 @@ import {
   Truck,
   Users,
 } from "lucide-react";
-import { JsonLdScript, MarketingFooter, MarketingPageHeader, RevealOnScroll, ScrollToTopButton } from "@/components/marketing/page-shell";
+import { MarketingFooter, MarketingPageHeader, RevealOnScroll, ScrollToTopButton } from "@/components/marketing/page-shell";
 import { LegalModal, type LegalTab } from "@/components/legal-popups";
 
 const problemFlow = [
@@ -119,31 +119,12 @@ const platformAreas = [
   },
 ];
 
-const structuredData = {
-  "@context": "https://schema.org",
-  "@type": "AboutPage",
-  name: "About DukaOS",
-  description:
-    "Learn how DukaOS helps Kenyan businesses manage sales, inventory, purchases, customers, suppliers, branches and reports from one business operating system.",
-  url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/about`,
-  mainEntity: {
-    "@type": "SoftwareApplication",
-    name: "DukaOS",
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    areaServed: "Kenya",
-    description:
-      "DukaOS is a business operating system for POS, inventory, purchases, customers, suppliers, reports and multi-branch management.",
-  },
-};
-
 export function AboutPageContent() {
   const [legalOpen, setLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("privacy");
 
   return (
     <>
-      <JsonLdScript data={structuredData} />
       <main className="min-h-screen bg-[#f8faf9] text-foreground">
         <RevealOnScroll />
         <ScrollToTopButton />

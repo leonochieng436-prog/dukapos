@@ -4,7 +4,7 @@ export const registerOrganizationSchema = z.object({
   businessName: z.string().min(2, "Business name is required").max(120),
   ownerName: z.string().min(2, "Your name is required").max(120),
   email: z.string().email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(15, "Password must be at least 15 characters").max(1024, "Password must be 1,024 characters or fewer"),
   phone: z.string().min(7).max(20).optional().or(z.literal("")),
   businessType: z.string().min(1).max(60).default("general_store"),
   country: z.string().length(2).default("KE"),
@@ -27,8 +27,8 @@ export const forgotPasswordSchema = z.object({
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  token: z.string().regex(/^[a-f0-9]{64}$/i, "Invalid reset token"),
+  password: z.string().min(15, "Password must be at least 15 characters").max(1024, "Password must be 1,024 characters or fewer"),
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 

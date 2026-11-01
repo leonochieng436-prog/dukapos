@@ -8,9 +8,9 @@ import {
   Mail,
   Phone,
 } from "lucide-react";
-import { submitContactEnquiry } from "@/app/actions/contact";
+import { submitContactEnquiry, type ContactActionState } from "@/app/actions/contact";
 import { LegalModal, type LegalTab } from "@/components/legal-popups";
-import { JsonLdScript, MarketingFooter, MarketingPageHeader, RevealOnScroll, ScrollToTopButton } from "@/components/marketing/page-shell";
+import { MarketingFooter, MarketingPageHeader, RevealOnScroll, ScrollToTopButton } from "@/components/marketing/page-shell";
 import { SocialLinks } from "@/components/marketing/social-links";
 
 const faqs = [
@@ -26,67 +26,20 @@ const faqs = [
   ["How can I request a DukaOS demo?", "Use the contact form on this page or send a request through the DukaOS sales channels and our team will follow up."],
 ] as const;
 
-const structuredData = {
-  "@context": "https://schema.org",
-  "@type": "ContactPage",
-  name: "Contact DukaOS",
-  description:
-    "Contact DukaOS for POS software, inventory management, business management solutions, demos, onboarding and support for businesses in Kenya.",
-  url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/contact`,
-  about: {
-    "@type": "SoftwareApplication",
-    name: "DukaOS",
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
-    areaServed: "Kenya",
-  },
-};
-
-const initialState = {
-  ok: false as boolean,
+const initialState: ContactActionState = {
+  ok: false,
   error: "",
   message: "",
-  fieldErrors: {} as Record<string, string[]>,
+  reference: "",
+  whatsappUrl: null,
+  fieldErrors: {},
 };
 
-export function ContactPageContent() {
-  const [isSubmitted, setIsSubmitted] = useState(false);
+export function ContactPageContent({ submissionKey }: { submissionKey: string }) {
   const [legalOpen, setLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("privacy");
-  const [state, formAction, isPending] = useActionState(
-    async (_previousState: typeof initialState, formData: FormData) => {
-      const payload = {
-        fullName: String(formData.get("fullName") ?? ""),
-        businessName: String(formData.get("businessName") ?? ""),
-        email: String(formData.get("email") ?? ""),
-        phone: String(formData.get("phone") ?? ""),
-        businessType: String(formData.get("businessType") ?? ""),
-        numberOfLocations: String(formData.get("numberOfLocations") ?? ""),
-        currentSystem: String(formData.get("currentSystem") ?? ""),
-        interest: String(formData.get("interest") ?? ""),
-        message: String(formData.get("message") ?? ""),
-      };
-
-      const result = await submitContactEnquiry(payload);
-      if (!result.ok) {
-        return {
-          ok: false,
-          error: result.error,
-          message: "",
-          fieldErrors: result.fieldErrors ?? {},
-        };
-      }
-
-      setIsSubmitted(true);
-      return {
-        ok: true,
-        error: "",
-        message: result.message,
-        fieldErrors: {},
-      };
-    },
-    initialState,
-  );
+  const [copyFeedback, setCopyFeedback] = useState("");
+  const [state, formAction, isPending] = useActionState(submitContactEnquiry, initialState);
 
   const fields = useMemo(
     () => [
@@ -100,7 +53,6 @@ export function ContactPageContent() {
 
   return (
     <>
-      <JsonLdScript data={structuredData} />
       <main className="min-h-screen bg-[#f8faf9] text-foreground">
         <RevealOnScroll />
         <ScrollToTopButton />
@@ -123,7 +75,7 @@ export function ContactPageContent() {
                 <a href="#form" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-white hover:bg-primary-hover">
                   Request a Demo <ArrowRight size={16} />
                 </a>
-                <Link href="/about" className="inline-flex items-center gap-2 rounded-xl border border-border-strong bg-white px-6 py-3.5 text-sm font-semibold text-foreground hover:border-primary hover:text-primary">
+                <Link href="#form" className="inline-flex items-center gap-2 rounded-xl border border-border-strong bg-white px-6 py-3.5 text-sm font-semibold text-foreground hover:border-primary hover:text-primary">
                   Talk to DukaOS
                 </Link>
               </div>
@@ -183,18 +135,68 @@ export function ContactPageContent() {
             </div>
 
             <form action={formAction} className="rounded-2xl border border-border bg-[#f8faf9] p-5 shadow-sm sm:p-6">
+              {state.ok ? (
+                <div role="status" aria-live="polite" className="rounded-xl border border-success/20 bg-success-tint p-5">
+                  <p className="text-lg font-semibold text-success">Inquiry received</p>
+                  <p className="mt-2 text-sm leading-6 text-foreground">{state.message}</p>
+                  <p className="mt-3 text-sm text-foreground">
+                    Reference: <strong className="font-mono">{state.reference}</strong>
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    {state.whatsappUrl ? (
+                      <a
+                        href={state.whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-hover"
+                      >
+                        Continue to WhatsApp <ArrowRight size={16} />
+                      </a>
+                    ) : (
+                      <p className="max-w-lg text-sm text-muted-foreground">
+                        WhatsApp follow-up is unavailable right now. Your inquiry is saved; copy the reference above if you contact us another way.
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(state.reference);
+                          setCopyFeedback("Reference copied.");
+                        } catch {
+                          setCopyFeedback("Copy failed. Please select and copy the reference above.");
+                        }
+                      }}
+                      className="min-h-11 rounded-xl border border-border-strong bg-white px-4 py-3 text-sm font-semibold text-foreground hover:border-primary"
+                    >
+                      Copy reference
+                    </button>
+                  </div>
+                  {copyFeedback && <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">{copyFeedback}</p>}
+                </div>
+              ) : (
+                <>
+              <input type="hidden" name="submissionKey" value={submissionKey} />
+              <label aria-hidden="true" className="absolute -left-[10000px] h-px w-px overflow-hidden">
+                Leave this field empty
+                <input name="website" tabIndex={-1} autoComplete="off" />
+              </label>
               <div className="grid gap-5 sm:grid-cols-2">
                 {fields.map((field) => (
                   <label key={field.name} className="block text-sm font-medium text-foreground">
                     {field.label}
                     <input
+                      id={`contact-${field.name}`}
                       name={field.name}
                       type={field.type ?? "text"}
                       required
+                      autoComplete={field.name === "fullName" ? "name" : field.name === "email" ? "email" : field.name === "phone" ? "tel" : "organization"}
+                      aria-invalid={Boolean(state.fieldErrors[field.name]?.[0])}
+                      aria-describedby={state.fieldErrors[field.name]?.[0] ? `contact-${field.name}-error` : undefined}
                       className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
                     />
                     {state.fieldErrors[field.name]?.[0] ? (
-                      <span className="mt-1 block text-[12px] text-danger">{state.fieldErrors[field.name][0]}</span>
+                      <span id={`contact-${field.name}-error`} className="mt-1 block text-[12px] text-danger">{state.fieldErrors[field.name][0]}</span>
                     ) : null}
                   </label>
                 ))}
@@ -251,37 +253,35 @@ export function ContactPageContent() {
                 <label className="block text-sm font-medium text-foreground sm:col-span-2">
                   Message *
                   <textarea
+                    id="contact-message"
                     name="message"
                     rows={5}
                     required
+                    aria-invalid={Boolean(state.fieldErrors.message?.[0])}
+                    aria-describedby={state.fieldErrors.message?.[0] ? "contact-message-error" : undefined}
                     className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
                     placeholder="Tell us more about your workflow, goals, and current challenges"
                   />
                   {state.fieldErrors.message?.[0] && (
-                    <span className="mt-1 block text-[12px] text-danger">{state.fieldErrors.message[0]}</span>
+                    <span id="contact-message-error" className="mt-1 block text-[12px] text-danger">{state.fieldErrors.message[0]}</span>
                   )}
                 </label>
               </div>
 
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || !submissionKey}
+                aria-busy={isPending}
                 className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isPending ? "Sending..." : "Send Enquiry"} <ArrowRight size={16} />
+                {isPending ? "Saving inquiry..." : "Send Inquiry"} <ArrowRight size={16} />
               </button>
 
               {state.error ? (
-                <p className="mt-4 text-sm text-danger">{state.error}</p>
+                <p role="alert" className="mt-4 text-sm text-danger">{state.error}</p>
               ) : null}
-
-              {state.message ? (
-                <p className="mt-4 text-sm text-success">{state.message}</p>
-              ) : null}
-
-              {!state.error && isSubmitted && !state.message ? (
-                <p className="mt-4 text-sm text-success">Thanks for contacting DukaOS. We&apos;ve received your enquiry and will get back to you.</p>
-              ) : null}
+                </>
+              )}
             </form>
           </div>
         </section>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { CheckCircle2, Clock3, PauseCircle, Store } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, Clock3, Mail, PauseCircle, Settings2, Store } from "lucide-react";
 import { adminLogout, approveSubscription } from "@/app/actions/admin";
 import { getCurrentAdmin } from "@/server/auth/admin-session";
 import { rawPrisma } from "@/server/db/client";
@@ -17,11 +18,12 @@ function Metric({ label, value, tone, icon }: { label: string; value: number; to
 }
 
 export default async function AdminPage() {
-  if (!await getCurrentAdmin()) redirect("/admin/login");
-  const subscriptions = await rawPrisma.subscription.findMany({
+  const currentAdmin = await getCurrentAdmin();
+  if (!currentAdmin) redirect("/admin/login");
+  const [subscriptions, newInquiryCount] = await Promise.all([rawPrisma.subscription.findMany({
     include: { organization: { include: { branches: { include: { registers: true } }, users: { include: { user: true, role: true } } } }, approvedByAdmin: true },
     orderBy: { createdAt: "desc" },
-  });
+  }), rawPrisma.inquiry.count({ where: { status: "NEW" } })]);
   const pending = subscriptions.filter((subscription) => subscription.status === "pending_payment");
   const activeCount = subscriptions.filter((subscription) => subscription.status === "active").length;
   const pausedCount = subscriptions.filter((subscription) => subscription.status === "paused").length;
@@ -44,7 +46,7 @@ export default async function AdminPage() {
   }));
 
   return <div className="min-h-screen bg-background">
-    <header className="flex items-center justify-between border-b border-border bg-surface px-5 py-4 sm:px-8"><div><p className="text-sm font-semibold">DukaOS Admin</p><p className="text-xs text-muted-foreground">Platform Administration</p></div><div className="flex items-center gap-4"><span className="hidden text-sm text-muted-foreground sm:inline">Administrator</span><form action={adminLogout}><button className="text-sm font-semibold text-primary hover:underline">Log out</button></form></div></header>
+    <header className="flex items-center justify-between border-b border-border bg-surface px-5 py-4 sm:px-8"><div><p className="text-sm font-semibold">DukaOS Admin</p><p className="text-xs text-muted-foreground">Platform Administration</p></div><div className="flex items-center gap-3"><Link href="/admin/inquiries" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:border-primary"><Mail size={16} /> Inquiries <span className="rounded-full bg-primary-tint px-2 py-0.5 text-xs text-primary">{newInquiryCount}</span></Link>{currentAdmin.role === "SUPER_ADMIN" && <Link href="/admin/administrators" aria-label="Administrator settings" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:border-primary"><Settings2 size={16} /> Settings</Link>}<span className="hidden text-sm text-muted-foreground sm:inline">{currentAdmin.role === "SUPER_ADMIN" ? "Super Admin" : "Administrator"}</span><form action={adminLogout}><button className="text-sm font-semibold text-primary hover:underline">Log out</button></form></div></header>
     <main className="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-8">
       <div><p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">Platform control center</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Manage DukaOS businesses</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Manage registered businesses, review payment approvals, control platform access, and oversee business accounts.</p></div>
       <section><div className="mb-4"><h2 className="text-lg font-semibold">Platform overview</h2></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Registered businesses" value={subscriptions.length} tone="neutral" icon={<Store size={18} />} /><Metric label="Active businesses" value={activeCount} tone="success" icon={<CheckCircle2 size={18} />} /><Metric label="Paused businesses" value={pausedCount} tone="warning" icon={<PauseCircle size={18} />} /><Metric label="Pending approvals" value={pending.length} tone="neutral" icon={<Clock3 size={18} />} /></div></section>

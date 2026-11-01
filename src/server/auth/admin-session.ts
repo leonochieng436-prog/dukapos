@@ -38,7 +38,12 @@ export async function getCurrentAdmin() {
     where: { tokenHash: hashToken(token) },
     include: { admin: true },
   });
-  if (!session || session.expiresAt < new Date() || !session.admin.isActive) return null;
+  if (
+    !session ||
+    session.expiresAt < new Date() ||
+    !session.admin.isActive ||
+    session.admin.mustResetPassword
+  ) return null;
   return session.admin;
 }
 
@@ -52,5 +57,11 @@ export async function destroyAdminSession() {
 export async function requireAdmin() {
   const admin = await getCurrentAdmin();
   if (!admin) throw new Error("ADMIN_AUTH_REQUIRED");
+  return admin;
+}
+
+export async function requireSuperAdmin() {
+  const admin = await requireAdmin();
+  if (admin.role !== "SUPER_ADMIN") throw new Error("SUPER_ADMIN_REQUIRED");
   return admin;
 }

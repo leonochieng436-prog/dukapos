@@ -173,15 +173,20 @@ model User {
 }
 
 model PlatformAdmin {
-  id           String         @id @default(cuid())
-  name         String
-  email        String         @unique
-  passwordHash String
-  isActive     Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  sessions     AdminSession[]
-  approvals    Subscription[] @relation("SubscriptionApprovedBy")
+  id                String                       @id @default(cuid())
+  name              String
+  email             String                       @unique
+  passwordHash      String
+  role              PlatformAdminRole            @default(ADMIN)
+  isActive          Boolean                      @default(true)
+  mustResetPassword Boolean                      @default(false)
+  lastLoginAt       DateTime?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+  sessions          AdminSession[]
+  approvals         Subscription[]               @relation("SubscriptionApprovedBy")
+  invitations       PlatformAdminInvitation[]
+  passwordResets    PlatformAdminPasswordReset[]
 }
 
 model AdminSession {
@@ -196,6 +201,102 @@ model AdminSession {
 
   @@index([adminId])
   @@map("admin_sessions")
+}
+
+model PlatformAdminInvitation {
+  id             String              @id @default(cuid())
+  adminId        String?
+  name           String
+  email          String
+  role           PlatformAdminRole
+  tokenHash      String              @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  expiredAt      DateTime?
+  revokedAt      DateTime?
+  deliveryStatus SecurityEmailStatus @default(PENDING)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  admin          PlatformAdmin?      @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([email, createdAt])
+  @@index([expiresAt, usedAt, revokedAt])
+  @@map("platform_admin_invitations")
+}
+
+model PlatformAdminPasswordReset {
+  id             String              @id @default(cuid())
+  adminId        String
+  tokenHash      String              @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+  deliveryStatus SecurityEmailStatus @default(PENDING)
+  createdAt      DateTime            @default(now())
+  admin          PlatformAdmin       @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+  @@index([expiresAt, usedAt, revokedAt])
+  @@map("platform_admin_password_resets")
+}
+
+model SecurityEvent {
+  id            String   @id @default(cuid())
+  action        String
+  actorAdminId  String?
+  targetAdminId String?
+  targetUserId  String?
+  ipAddress     String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetAdminId, createdAt])
+  @@index([action, createdAt])
+  @@map("security_events")
+}
+
+model AuthRateLimitBucket {
+  key             String   @id
+  windowStartedAt DateTime
+  hits            Int
+
+  @@index([windowStartedAt])
+  @@map("auth_rate_limit_buckets")
+}
+
+model Inquiry {
+  id                 String                    @id @default(cuid())
+  submissionKey      String                    @unique
+  name               String
+  businessName       String
+  phone              String
+  phoneDigits        String
+  email              String
+  businessType       String?
+  numberOfLocations  String?
+  currentSystem      String?
+  subject            String
+  productOrService   String?
+  message            String
+  productId          String?
+  productUrl         String?
+  status             InquiryStatus             @default(NEW)
+  internalNotes      String?
+  ipHash             String?
+  notificationStatus InquiryNotificationStatus @default(PENDING)
+  notificationSentAt DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([ipHash, createdAt])
+  @@index([phone, createdAt])
+  @@index([phoneDigits, createdAt])
+  @@index([email, createdAt])
+  @@map("inquiries")
 }
 
 model UserOrganization {
@@ -257,14 +358,17 @@ model Session {
 }
 
 model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String              @id @default(cuid())
+  userId         String
+  tokenHash      String              @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+  deliveryStatus SecurityEmailStatus @default(PENDING)
+  createdAt      DateTime            @default(now())
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, createdAt])
   @@map("password_reset_tokens")
 }
 
@@ -1342,6 +1446,31 @@ enum ProductType {
   STOCKED
   SERVICE
   BUNDLE
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  IN_PROGRESS
+  RESOLVED
+  SPAM
+}
+
+enum InquiryNotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum PlatformAdminRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum SecurityEmailStatus {
+  PENDING
+  SENT
+  FAILED
 }
 
 enum PurchaseOrderStatus {

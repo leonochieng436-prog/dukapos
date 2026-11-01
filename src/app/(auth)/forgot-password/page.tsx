@@ -9,11 +9,17 @@ import { Label } from "@/components/ui/label";
 export default function ForgotPasswordPage() {
   const [isPending, startTransition] = useTransition();
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      await requestPasswordReset({ email: String(formData.get("email") || "") });
-      setSent(true);
+      setError(null);
+      try {
+        await requestPasswordReset({ email: String(formData.get("email") || "") });
+        setSent(true);
+      } catch {
+        setError("We could not process that request right now. Please try again later.");
+      }
     });
   }
 
@@ -44,6 +50,7 @@ export default function ForgotPasswordPage() {
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" required />
       </div>
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={isPending}>
         {isPending ? "Sending…" : "Send reset link"}
       </Button>

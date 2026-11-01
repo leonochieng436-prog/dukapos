@@ -1,16 +1,20 @@
 import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa";
+import { getWhatsAppBusinessNumber } from "@/lib/whatsapp";
 
+const whatsappNumber = getWhatsAppBusinessNumber();
 const socialLinks = [
   {
     label: "Instagram",
     href: "https://www.instagram.com/dukaos/",
     icon: FaInstagram,
   },
-  {
-    label: "WhatsApp",
-    href: "https://wa.me/254757308631",
-    icon: FaWhatsapp,
-  },
+  ...(whatsappNumber
+    ? [{
+        label: "WhatsApp",
+        href: `https://wa.me/${whatsappNumber}`,
+        icon: FaWhatsapp,
+      }]
+    : []),
   {
     label: "Facebook",
     href: "https://www.facebook.com/dukaos/",
