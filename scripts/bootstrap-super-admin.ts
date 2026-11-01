@@ -163,7 +163,7 @@ async function main() {
       });
     }
     return created;
-  }, { isolationLevel: "Serializable" });
+  }, { isolationLevel: "Serializable", maxWait: 10_000, timeout: 30_000 });
 
   try {
     await sendInvitation({
