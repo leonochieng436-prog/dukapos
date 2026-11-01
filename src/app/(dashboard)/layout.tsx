@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import Decimal from "decimal.js";
 import { AuthError, requireAuthContext } from "@/server/auth/context";
 import { rawPrisma } from "@/server/db/client";
@@ -12,6 +13,11 @@ import { PLAN_CATALOG, type Plan } from "@/lib/billing";
 import {
   LogOut,
 } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Business workspace | DukaOS",
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+};
 
 const NAV: DashboardNavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },

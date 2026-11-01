@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms & Conditions | DukaOS",
-  description:
-    "Terms and conditions for DukaOS users, including SaaS usage, fees, service availability, and Kenyan legal compliance.",
-};
+export const metadata: Metadata = createPageMetadata(
+  "Terms & Conditions | DukaOS",
+  "Read the terms and conditions for accessing and using the DukaOS business operations platform.",
+  "/terms",
+);
 
 export default function TermsPage() {
   return (

@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
+import { createPageMetadata, siteUrl } from "@/lib/seo";
 import { ContactPageContent } from "@/components/marketing/contact-page";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Contact DukaOS | POS & Business Management Software Kenya",
-  description:
-    "Contact DukaOS for POS software, inventory management, business management solutions, demos, onboarding and support for businesses in Kenya.",
-};
+export const metadata: Metadata = createPageMetadata(
+  "Contact DukaOS | POS & Business Management Software Kenya",
+  "Contact DukaOS for information about POS, inventory management, demos, onboarding, and support for businesses in Kenya.",
+  "/contact",
+);
 
 export default function ContactPage() {
   const structuredData = {
@@ -17,7 +18,7 @@ export default function ContactPage() {
     name: "Contact DukaOS",
     description:
       "Contact DukaOS for POS software, inventory management, business management solutions, demos, onboarding and support for businesses in Kenya.",
-    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app"}/contact`,
+    url: `${siteUrl}/contact`,
     about: {
       "@type": "SoftwareApplication",
       name: "DukaOS",

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { createPageMetadata, siteUrl } from "@/lib/seo";
 import { AboutPageContent } from "@/components/marketing/about-page";
 
-export const metadata: Metadata = {
-  title: "About DukaOS | Business Management & POS Software in Kenya",
-  description:
-    "Learn how DukaOS helps Kenyan businesses manage sales, inventory, purchases, customers, suppliers, branches and reports from one powerful business management system.",
-};
+export const metadata: Metadata = createPageMetadata(
+  "About DukaOS | Business Management & POS Software in Kenya",
+  "Learn how DukaOS helps Kenyan businesses manage sales, inventory, purchases, customers, suppliers, branches and reports from one business management system.",
+  "/about",
+);
 
 export default function AboutPage() {
   const structuredData = {
@@ -14,7 +15,7 @@ export default function AboutPage() {
     name: "About DukaOS",
     description:
       "Learn how DukaOS helps Kenyan businesses manage sales, inventory, purchases, customers, suppliers, branches and reports from one business operating system.",
-    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app"}/about`,
+    url: `${siteUrl}/about`,
     mainEntity: {
       "@type": "SoftwareApplication",
       name: "DukaOS",

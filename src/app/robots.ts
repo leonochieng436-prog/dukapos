@@ -1,25 +1,12 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL ??
-  "https://dukapos-theta.vercel.app";
+import { siteUrl } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: [
-        "/api/",
-        "/admin/",
-        "/dashboard/",
-        "/login/",
-        "/register/",
-        "/forgot-password/",
-        "/reset-password/",
-        "/account-pending/",
-        "/_next/",
-      ],
+      disallow: "/api/",
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };

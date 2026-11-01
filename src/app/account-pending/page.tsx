@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, Building2, Check, CheckCircle2, Circle, CreditCard, KeyRound, LogOut, MessageCircle } from "lucide-react";
 import { logout } from "@/app/actions/auth";
@@ -6,6 +7,11 @@ import { getCurrentSession } from "@/server/auth/session";
 import { rawPrisma } from "@/server/db/client";
 import { submitPaymentReference } from "@/app/actions/admin";
 import { buildWhatsAppUrl, getWhatsAppBusinessNumber } from "@/lib/whatsapp";
+
+export const metadata: Metadata = {
+  title: "Account activation | DukaOS",
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+};
 
 const PLAN_NAMES: Record<string, string> = {
   starter: "Starter",

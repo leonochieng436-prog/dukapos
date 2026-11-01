@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Cookie Policy | DukaOS",
-  description:
-    "Cookie policy for DukaOS, covering essential, preference, analytics, and marketing cookies, consent preferences, and user controls.",
-};
+export const metadata: Metadata = createPageMetadata(
+  "Cookie Policy | DukaOS",
+  "Read how DukaOS uses essential and preference cookies and how to manage cookie settings.",
+  "/cookie-policy",
+);
 
 export default function CookiePolicyPage() {
   return (

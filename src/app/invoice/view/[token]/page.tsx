@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { rawPrisma } from "@/server/db/client";
+
+export const metadata: Metadata = {
+  title: "Invoice | DukaOS",
+  robots: { index: false, follow: false, googleBot: { index: false, follow: false } },
+};
 
 export default async function PublicInvoicePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

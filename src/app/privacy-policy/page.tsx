@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy | DukaOS",
-  description:
-    "Privacy policy for DukaOS, covering Kenyan data protection practices, business data handling, and platform security.",
-};
+export const metadata: Metadata = createPageMetadata(
+  "Privacy Policy | DukaOS",
+  "Read the DukaOS privacy policy covering personal data, business information, security, and data subject rights.",
+  "/privacy-policy",
+);
 
 export default function PrivacyPolicyPage() {
   return (

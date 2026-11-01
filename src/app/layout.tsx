@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter, Playfair_Display } from "next/font/google";
+import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,10 +21,8 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
+  metadataBase: new URL(siteUrl),
   title: "DukaOS | POS, Inventory & Business Management Software for Kenyan Businesses",
   description:
     "DukaOS is a modern POS, inventory, purchases, customer credit, supplier, and reporting system built for growing Kenyan retail and service businesses.",
@@ -47,9 +46,6 @@ export const metadata: Metadata = {
   verification: {
     google: "9yUtOp4x4_dyRzn_RLhsCLNsI2W8O-43j6Kr6iWFIAY",
   },
-  alternates: {
-    canonical: "/",
-  },
   robots: {
     index: true,
     follow: true,
@@ -62,25 +58,6 @@ export const metadata: Metadata = {
     icon: "/images/DukaOS-logo.png",
     shortcut: "/images/DukaOS-logo.png",
     apple: "/images/DukaOS-logo.png",
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_KE",
-    url: appUrl,
-    siteName: "DukaOS",
-    title: "DukaOS | POS, Inventory & Business Management Software for Kenyan Businesses",
-    description:
-      "Manage sales, inventory, purchases, customer credit, warehouses, branches, and reports in one connected platform built for Kenyan businesses.",
-    images: [{ url: "/images/DukaOS-logo2.png", width: 1200, height: 630, alt: "DukaOS business operating system" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    site: "@DukaOS",
-    creator: "@DukaOS",
-    title: "DukaOS | POS, Inventory & Business Management Software for Kenyan Businesses",
-    description:
-      "Manage sales, inventory, purchases, customer credit, warehouses, branches, and reports in one connected platform built for Kenyan businesses.",
-    images: ["/images/DukaOS-logo2.png"],
   },
 };
 
