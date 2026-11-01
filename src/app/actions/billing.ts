@@ -24,8 +24,8 @@ export async function createCheckoutSession(raw: unknown): Promise<ActionResult<
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { organizationId: ctx.organizationId, plan },
       subscription_data: { metadata: { organizationId: ctx.organizationId, plan } },
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/dashboard/billing?checkout=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/dashboard/billing?checkout=cancelled`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app"}/dashboard/billing?checkout=success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app"}/dashboard/billing?checkout=cancelled`,
     });
     if (!session.url) return { ok: false, error: "Stripe did not return a checkout URL." };
     return { ok: true, data: { url: session.url } };

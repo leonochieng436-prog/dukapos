@@ -17,7 +17,7 @@ export default function ContactPage() {
     name: "Contact DukaOS",
     description:
       "Contact DukaOS for POS software, inventory management, business management solutions, demos, onboarding and support for businesses in Kenya.",
-    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/contact`,
+    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app"}/contact`,
     about: {
       "@type": "SoftwareApplication",
       name: "DukaOS",

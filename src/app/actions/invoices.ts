@@ -82,7 +82,7 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
       return created;
     });
     if (shouldSend && customer.email) {
-      const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/invoice/view/${invoice.publicToken}`;
+      const invoiceUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app"}/invoice/view/${invoice.publicToken}`;
       try {
         await sendEmail({
           recipient: customer.email,

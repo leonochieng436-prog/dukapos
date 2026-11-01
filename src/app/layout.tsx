@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),

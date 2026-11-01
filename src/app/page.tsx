@@ -34,7 +34,7 @@ export default async function RootPage() {
     publisher: {
       "@type": "Organization",
       name: "DukaOS",
-      sameAs: "https://dukaos-organization.vercel.app",
+      sameAs: "https://dukapos-theta.vercel.app",
     },
     areaServed: "Kenya",
   };

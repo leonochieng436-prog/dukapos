@@ -36,7 +36,7 @@ export async function initiateMpesaPayment(raw: unknown): Promise<ActionResult<{
     const accountReference = `DUKAOS-${randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}`;
     const intent = await ctx.db.mpesaPaymentIntent.create({ data: { organizationId: ctx.organizationId, branchId: input.branchId, paymentAccountId: account.id, saleId: input.saleId || null, amount: new Decimal(input.amount).toFixed(2), phoneNumber: normalizePhone(input.phoneNumber), accountReference } });
     try {
-      const response = await initiateStkPush(account, { phoneNumber: intent.phoneNumber, amount: intent.amount.toString(), accountReference, description: "DukaOS sale payment", callbackUrl: `${process.env.MPESA_CALLBACK_URL || process.env.NEXT_PUBLIC_APP_URL || "https://dukaos-organization.vercel.app"}/api/webhooks/mpesa` });
+      const response = await initiateStkPush(account, { phoneNumber: intent.phoneNumber, amount: intent.amount.toString(), accountReference, description: "DukaOS sale payment", callbackUrl: `${process.env.MPESA_CALLBACK_URL || process.env.NEXT_PUBLIC_APP_URL || "https://dukapos-theta.vercel.app"}/api/webhooks/mpesa` });
       await ctx.db.mpesaPaymentIntent.update({ where: { id: intent.id }, data: { status: "PROCESSING", checkoutRequestId: response.CheckoutRequestID, merchantRequestId: response.MerchantRequestID ?? null, metadata: response } });
       return { ok: true, data: { paymentIntentId: intent.id, status: "PENDING" } };
     } catch (error) {

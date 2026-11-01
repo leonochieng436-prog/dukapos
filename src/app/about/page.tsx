@@ -14,7 +14,7 @@ export default function AboutPage() {
     name: "About DukaOS",
     description:
       "Learn how DukaOS helps Kenyan businesses manage sales, inventory, purchases, customers, suppliers, branches and reports from one business operating system.",
-    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukaos-organization.vercel.app"}/about`,
+    url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://dukapos-theta.vercel.app"}/about`,
     mainEntity: {
       "@type": "SoftwareApplication",
       name: "DukaOS",

@@ -1,4 +1,4 @@
-# DukaOS Front Page
+﻿# DukaOS Front Page
 
 The public front page lives at the application root (`/`). Signed-out visitors see the marketing page; authenticated visitors continue to be redirected to `/dashboard`.
 
@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open [https://dukaos-organization.vercel.app](https://dukaos-organization.vercel.app) in a browser. Use **Get started** or **Start your workspace** to open `/register`, or **Log in** to open `/login`.
+Open [https://dukapos-theta.vercel.app](https://dukapos-theta.vercel.app) in a browser. Use **Get started** or **Start your workspace** to open `/register`, or **Log in** to open `/login`.
 
 ## Registration and activation flow
 

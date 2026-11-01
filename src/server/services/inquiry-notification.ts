@@ -25,7 +25,7 @@ export async function sendInquiryNotification(inquiry: Inquiry): Promise<void> {
     `<p><strong>${label}:</strong> ${escapeHtml(value || "Not specified")}</p>`;
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL?.trim() ??
-    "https://dukaos-organization.vercel.app";
+    "https://dukapos-theta.vercel.app";
 
   await sendEmail({
     recipient: resolveContactRecipient(),
